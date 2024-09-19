@@ -1,10 +1,11 @@
 //This is the .content-box that will contain all the .content-content elements
 const contentBox = document.getElementById('content-box');
-//This is the array of all the .content-content elements
-const contentContents = document.querySelectorAll('.content-content');
+
 
 var currentContents = [];
 var focusContent = [];
+
+var voiceToUse = 0;
 
 function isOffscreen(element) {
     const rect = element.getBoundingClientRect();
@@ -18,6 +19,8 @@ function isOffscreen(element) {
 
 
 function quintupleContent() {
+    //This is the array of all the .content-content elements
+    const contentContents = document.querySelectorAll('.content-content');
     //make 2 duplicates on the front and back of the array
     currentContents = [...contentContents, ...contentContents, ...contentContents, ...contentContents, ...contentContents];
     //apply new content to the content box again keeping track of the middle ones
@@ -27,8 +30,9 @@ function quintupleContent() {
         //get image one and two from children
         const img1 = element.querySelector('.image1');
         const img2 = element.querySelector('.image2');
+        const text = element.querySelector('.title').innerText;
         //make the images draggable and check for drop
-        makeImagesDraggableAndCheck(img1, img2);
+        makeImagesDraggableAndCheck(img1, img2, speakWords.bind(null, text));
 
     });
     focusContent = contentBox.children;
@@ -45,27 +49,18 @@ function updateContent() {
             //find the first visible element
             const firstVisibleElement = contentElements.find(element => !isOffscreen(element));
             //if we found one, we will need to know which in the list it is, and its offset from the top of the screen
-            const fistVisibleIndex = contentElements.indexOf(firstVisibleElement);
+            const firstVisibleIndex = contentElements.indexOf(firstVisibleElement);
             const offset = firstVisibleElement.getBoundingClientRect().top;
-            //the modulus of the first visible index with the length of the focus content will tell us which element it correspnds to to scroll to
-            const scrollToIndex = (fistVisibleIndex) % focusContent.length;
-            //scroll to the element instnatly seamlessly
-            focusContent[scrollToIndex].scrollIntoView({ behavior: 'instant' })
-            //now account for offset
-            window.scrollBy({ top: -offset, behavior: 'instant' });
+            const scrollToIndex = firstVisibleIndex % focusContent.length;
+            const targetElement = focusContent[scrollToIndex];
+            const targetRect = targetElement.getBoundingClientRect();
+            const scrollTop = window.pageYOffset + targetRect.top - offset;
+
+            // Scroll to the exact position
+            window.scrollTo({ top: scrollTop, behavior: 'instant' });
     }
 }
 
-// Call the quintupleContent function to initialize the content
-for (let i = 0; i < 3; i++) {
-    quintupleContent();
-}
-
-// Add an event listener to update the content on scroll
-document.addEventListener('scroll', updateContent);
-
-// Add an event listener to update the content on resize
-window.addEventListener('resize', updateContent);
 function makeImagesDraggableAndCheck(img1, img2, overlapCallback) {
     let isDragging = false;
     let startX = 0;
@@ -91,6 +86,8 @@ function makeImagesDraggableAndCheck(img1, img2, overlapCallback) {
 
     // Function to handle the start of a drag (mouse or touch)
     function dragStart(e) {
+        img2.removeAttribute("hidden");
+
         isDragging = true;
 
         // Prevent default behavior
@@ -98,6 +95,9 @@ function makeImagesDraggableAndCheck(img1, img2, overlapCallback) {
 
         // Remove any transition to allow immediate dragging
         img1.style.transition = 'none';
+
+        //put image on top of all other images
+        img1.style.zIndex = 10;
 
         // Get initial mouse/touch position
         const event = e.type.includes('touch') ? e.touches[0] : e;
@@ -152,23 +152,47 @@ function makeImagesDraggableAndCheck(img1, img2, overlapCallback) {
         const img1Rect = img1.getBoundingClientRect();
         const img2Rect = img2.getBoundingClientRect();
 
-        // Check if img1 overlaps with img2
-        const isOverlapping =
-            img1Rect.right > img2Rect.left &&
-            img1Rect.left < img2Rect.right &&
-            img1Rect.bottom > img2Rect.top &&
-            img1Rect.top < img2Rect.bottom;
+        // Check if img1 overlaps closely with img2 (check the distance between the centers)
+        const img1CenterX = img1Rect.left + img1Rect.width / 2;
+        const img1CenterY = img1Rect.top + img1Rect.height / 2;
+        const img2CenterX = img2Rect.left + img2Rect.width / 2;
+        const img2CenterY = img2Rect.top + img2Rect.height / 2;
+        const distance = Math.sqrt( 
+            Math.pow(img1CenterX - img2CenterX, 2) + Math.pow(img1CenterY - img2CenterY, 2)
+        );
+
+        const isOverlapping = distance < 250;
 
         if (isOverlapping) {
             // Run the overlap callback function if provided
             if (typeof overlapCallback === 'function') {
-                overlapCallback();
+                //calculate the center of the viewport then move the center of the image to that
+                const viewportCenterX = window.innerWidth / 2;
+                const viewportCenterY = window.innerHeight / 2;
+                const dx = (viewportCenterX - img1CenterX) * -1;
+                const dy = viewportCenterY - img1CenterY;
+                //calculate max size modifier that the image can be and still fit in the viewport
+                const maxSize = Math.min(window.innerWidth / img1Rect.width, window.innerHeight / img1Rect.height);
+                //move the image to the center of the viewport and scale it to fit
+                img1.style.transition = 'transform 0.5s ease';
+                img1.style.transform = `translate(${dx}px, ${dy}px) scale(${maxSize})`;
+                // Speak the text
+                var msg = overlapCallback();
+                // Wait for the speech to finish before animating back
+                msg.onend = () => {
+                    // Animate back to the original position
+                    img1.style.transition = 'transform 0.5s ease';
+                    img1.style.transform = `translate(0px, 0px)`;
+                    img1.style.zIndex = 0;
+                };
             }
         } else {
             // Animate back to the original position
             img1.style.transition = 'transform 0.5s ease';
             img1.style.transform = `translate(0px, 0px)`;
+            //wait for the animation to finish
         }
+        img2.setAttribute("hidden", true);
     }
 
     // Attach event listeners to img1
@@ -182,3 +206,142 @@ function makeImagesDraggableAndCheck(img1, img2, overlapCallback) {
     storeInitialPosition();
 }
 
+function createContent() {
+    var content = document.getElementById("content-content");
+    
+    //get ./Content.json
+    try {
+        fetch('./Content.json')
+            .then(response => response.json())
+            .then(data => {
+                //for each object in the json
+                data.forEach(obj => {
+                    console.log(obj);
+
+                    //create a new content element
+                    var newContent = content.cloneNode(true);
+
+                    //remove ID and hidden attributes
+                    newContent.removeAttribute("id");
+                    newContent.removeAttribute("hidden");
+                    //set the title to the title in the json
+                    newContent.querySelector(".title").innerText = obj.text;
+                    //set image1 to the image1 in the json
+                    newContent.querySelector(".image1").src = obj.image1;
+                    //set image2 to the image2 in the json
+                    newContent.querySelector(".image2").src = obj.image2;
+
+                    //append the new content to the content box
+                    contentBox.appendChild(newContent);
+                });
+                //remove the original content element
+                content.remove();
+                //quintuple the content
+                quintupleContent();
+                
+                // Add an event listener to update the content on scroll
+                document.addEventListener('scroll', updateContent);
+
+                // Add an event listener to update the content on resize
+                window.addEventListener('resize', updateContent);
+                updateContent();
+            });
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function speakWords(text) {
+    //get all the voices
+    var voices = window.speechSynthesis.getVoices();
+    //create a new speech synthesis utterance
+    var msg = new SpeechSynthesisUtterance();
+    //set the text to the text passed in
+    msg.text = text;
+    //set the voice to the voiceToUse
+    msg.voice = voices[voiceToUse];
+    //speak the text
+    window.speechSynthesis.speak(msg);
+    //return the message
+    return msg;
+}
+
+function openMenu() {
+    //create a menu element
+    var menu = document.createElement("div");
+    //make the menu act as a floating popup window
+    menu.style.position = "fixed";
+    menu.style.top = "50%";
+    menu.style.left = "50%";
+    menu.style.transform = "translate(-50%, -50%)";
+    menu.style.backgroundColor = "white";
+    menu.style.border = "1px solid black";
+    menu.style.padding = "10px";
+    menu.style.zIndex = "1000";
+    //create a close button
+    var closeButton = document.createElement("button");
+    closeButton.innerText = "Close";
+    closeButton.onclick = function() {
+        menu.remove();
+    };
+
+    //create a select element
+    var voiceSelect = document.createElement("select");
+    //set width to reasonable size
+    voiceSelect.style.width = "200px";
+    //get all the voices
+    var voices = window.speechSynthesis.getVoices();
+    //for each voice
+    voices.forEach((voice, index) => {
+        //create an option element
+        var option = document.createElement("option");
+        //set the value to the index
+        option.value = index;
+        //set the text to the voice name
+        option.innerText = voice.name;
+        //append the option to the select element
+        voiceSelect.appendChild(option);
+    });
+    //set the select element to the voiceToUse
+    voiceSelect.value = voiceToUse;
+    //add an event listener to the select element
+    voiceSelect.onchange = function() {
+        voiceToUse = voiceSelect.value;
+    };
+    //append the select element to the menu
+    menu.appendChild(voiceSelect);
+
+    //create a slider for the height of content
+    var heightSlider = document.createElement("input");
+    heightSlider.type = "range";
+    heightSlider.min = "10";
+    heightSlider.max = "100";
+    heightSlider.value = "20";
+    heightSlider.style.width = "200px";
+    //set content-content and img height to the value as "calc(" + heightSlider.value + "vh - 40px")
+    heightSlider.oninput = function() {
+        document.querySelectorAll(".content-content").forEach(content => {
+            content.style.height = "calc(" + heightSlider.value + "vh - 40px)";
+            });
+        document.querySelectorAll("img").forEach(img => {
+            img.style.height = "calc(" + heightSlider.value + "vh - 40px)";
+            });
+    };
+    //append the slider to the menu
+    menu.appendChild(heightSlider);
+
+    
+    //append the close button to the menu
+    menu.appendChild(closeButton);
+    //append the menu to the body
+    document.body.appendChild(menu);
+}
+
+//call openMenu when the key combo "ctrl + m" is pressed
+document.addEventListener("keydown", function(event) {
+    if (event.ctrlKey && event.key === "m") {
+        openMenu();
+    }
+});
+
+createContent();
