@@ -1,0 +1,32 @@
+[
+    {
+        "image1": "./Door.svg",
+        "text": "Outside",
+        "image2": "./DoorGray.svg"
+    },
+    {
+        "image1": "./Bacon.svg",
+        "text": "Bacon",
+        "image2": "./BaconGray.svg"
+    },
+    {
+        "image1": "./Bottle.svg",
+        "text": "Bottle",
+        "image2": "./BottleGray.svg"
+    },
+    {
+        "image1": "./Chicken.svg",
+        "text": "Chicken Nuggets",
+        "image2": "./ChickenGray.svg"
+    },
+    {
+        "image1": "./Fries.svg",
+        "text": "French Fries",
+        "image2": "./FriesGray.svg"
+    },
+    {
+        "image1": "./Pool.svg",
+        "text": "Pool",
+        "image2": "./PoolGray.svg"
+    }
+]
