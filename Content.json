@@ -1,32 +1,32 @@
 [
     {
-        "image1": "./Door.svg",
+        "image1": "./assets/Door.svg",
         "text": "Outside",
-        "image2": "./DoorGray.svg"
+        "image2": "./assets/DoorGray.svg"
     },
     {
-        "image1": "./Bacon.svg",
+        "image1": "./assets/Bacon.svg",
         "text": "Bacon",
-        "image2": "./BaconGray.svg"
+        "image2": "./assets/BaconGray.svg"
     },
     {
-        "image1": "./Bottle.svg",
+        "image1": "./assets/Bottle.svg",
         "text": "Bottle",
-        "image2": "./BottleGray.svg"
+        "image2": "./assets/BottleGray.svg"
     },
     {
-        "image1": "./Chicken.svg",
+        "image1": "./assets/Chicken.svg",
         "text": "Chicken Nuggets",
-        "image2": "./ChickenGray.svg"
+        "image2": "./assets/ChickenGray.svg"
     },
     {
-        "image1": "./Fries.svg",
+        "image1": "./assets/Fries.svg",
         "text": "French Fries",
-        "image2": "./FriesGray.svg"
+        "image2": "./assets/FriesGray.svg"
     },
     {
-        "image1": "./Pool.svg",
+        "image1": "./assets/Pool.svg",
         "text": "Pool",
-        "image2": "./PoolGray.svg"
+        "image2": "./assets/PoolGray.svg"
     }
 ]

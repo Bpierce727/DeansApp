@@ -4,17 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="mobile-web-app-capable" content="yes">
-    <title>Homepage</title>
+    <meta name="description" content="Interactive learning application for children">
+    <title>Interactive Learning App</title>
     <link rel="stylesheet" href="Home.css">
 </head>
 <body>
-    <div class="content-box" id="content-box">
+    <main class="content-box" id="content-box" role="main">
         <div class="content-content" id="content-content" hidden>
-            <table>
+            <table role="presentation">
                 <tr>
                     <td class="fifth">
                         <div class="img-container">
-                            <img src="./metalBoy.jpg" alt="Image" class="image1">
+                            <img src="./metalBoy.jpg" alt="Interactive image" class="image1" role="button" tabindex="0">
                         </div>
                     </td>
                     <td class="threeFifth title">
@@ -22,13 +23,14 @@
                     </td>
                     <td class="fifth">
                         <div class="img-container">
-                            <img src="./metalBoy.jpg" alt="Image" class="image2" hidden>
+                            <img src="./metalBoy.jpg" alt="Target image" class="image2" hidden>
                         </div>
                     </td>
                 </tr>
             </table>
         </div>
-    </div>
+    </main>
+    <div id="error-container" class="error-message" hidden role="alert"></div>
 </body>
 <footer>
     <script src="Home.js"></script>

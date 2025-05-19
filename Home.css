@@ -94,3 +94,32 @@ body::-webkit-scrollbar {
     background: transparent; /* Chrome/Safari/Webkit */
     width: 0px;
 }
+
+.error-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    z-index: 1000;
+}
+
+/* Improve focus styles for keyboard navigation */
+.image1:focus {
+    outline: 3px solid #2196f3;
+    outline-offset: 2px;
+}
+
+/* Improve touch target sizes */
+.img-container {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

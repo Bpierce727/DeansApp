@@ -1,11 +1,33 @@
+// Configuration object for global settings
+const CONFIG = {
+    voiceToUse: 0,
+    overlapDistance: 250,
+    animationDuration: '0.5s',
+    animationEasing: 'ease'
+};
+
 //This is the .content-box that will contain all the .content-content elements
 const contentBox = document.getElementById('content-box');
 
+// DOM Elements
+let currentContents = [];
+let focusContent = [];
 
-var currentContents = [];
-var focusContent = [];
+// Utility functions
+const getTranslateValues = (element) => {
+    const style = window.getComputedStyle(element);
+    const matrix = new DOMMatrixReadOnly(style.transform);
+    return { x: matrix.m41, y: matrix.m42 };
+};
 
-var voiceToUse = 0;
+const applyTransform = (element, x, y, scale = 1) => {
+    element.style.transition = `transform ${CONFIG.animationDuration} ${CONFIG.animationEasing}`;
+    element.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+};
+
+const resetTransform = (element) => {
+    applyTransform(element, 0, 0);
+};
 
 function isOffscreen(element) {
     const rect = element.getBoundingClientRect();
@@ -16,7 +38,6 @@ function isOffscreen(element) {
         rect.top > window.innerHeight
     );
 }
-
 
 function quintupleContent() {
     //This is the array of all the .content-content elements
@@ -33,7 +54,6 @@ function quintupleContent() {
         const text = element.querySelector('.title').innerText;
         //make the images draggable and check for drop
         makeImagesDraggableAndCheck(img1, img2, speakWords.bind(null, text));
-
     });
     focusContent = contentBox.children;
     focusContent = Array.from(focusContent).slice(Math.floor(focusContent.length * 2 / 5), Math.floor(focusContent.length * 3 / 5));
@@ -207,63 +227,70 @@ function makeImagesDraggableAndCheck(img1, img2, overlapCallback) {
 }
 
 function createContent() {
-    var content = document.getElementById("content-content");
+    const content = document.getElementById("content-content");
     
-    //get ./Content.json
-    try {
-        fetch('./Content.json')
-            .then(response => response.json())
-            .then(data => {
-                //for each object in the json
-                data.forEach(obj => {
-                    console.log(obj);
-
-                    //create a new content element
-                    var newContent = content.cloneNode(true);
-
-                    //remove ID and hidden attributes
-                    newContent.removeAttribute("id");
-                    newContent.removeAttribute("hidden");
-                    //set the title to the title in the json
-                    newContent.querySelector(".title").innerText = obj.text;
-                    //set image1 to the image1 in the json
-                    newContent.querySelector(".image1").src = obj.image1;
-                    //set image2 to the image2 in the json
-                    newContent.querySelector(".image2").src = obj.image2;
-
-                    //append the new content to the content box
-                    contentBox.appendChild(newContent);
-                });
-                //remove the original content element
-                content.remove();
-                //quintuple the content
-                quintupleContent();
+    fetch('./Content.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            data.forEach(obj => {
+                const newContent = content.cloneNode(true);
+                newContent.removeAttribute("id");
+                newContent.removeAttribute("hidden");
                 
-                // Add an event listener to update the content on scroll
-                document.addEventListener('scroll', updateContent);
-
-                // Add an event listener to update the content on resize
-                window.addEventListener('resize', updateContent);
-                updateContent();
+                const title = newContent.querySelector(".title");
+                const img1 = newContent.querySelector(".image1");
+                const img2 = newContent.querySelector(".image2");
+                
+                title.innerText = obj.text;
+                img1.src = obj.image1;
+                img2.src = obj.image2;
+                
+                // Add accessibility attributes
+                img1.alt = `${obj.text} - Interactive image`;
+                img2.alt = `${obj.text} - Target image`;
+                newContent.setAttribute('role', 'article');
+                newContent.setAttribute('aria-label', obj.text);
+                
+                contentBox.appendChild(newContent);
             });
-    } catch (error) {
-        console.error(error);
-    }
+            
+            content.remove();
+            quintupleContent();
+            
+            // Add debounced event listeners
+            const debouncedUpdate = debounce(updateContent, 100);
+            document.addEventListener('scroll', debouncedUpdate);
+            window.addEventListener('resize', debouncedUpdate);
+            updateContent();
+        })
+        .catch(error => {
+            console.error('Error loading content:', error);
+            // Add user-friendly error message
+            contentBox.innerHTML = '<div class="error-message">Failed to load content. Please try refreshing the page.</div>';
+        });
 }
 
 function speakWords(text) {
-    //get all the voices
-    var voices = window.speechSynthesis.getVoices();
-    //create a new speech synthesis utterance
-    var msg = new SpeechSynthesisUtterance();
-    //set the text to the text passed in
-    msg.text = text;
-    //set the voice to the voiceToUse
-    msg.voice = voices[voiceToUse];
-    //speak the text
-    window.speechSynthesis.speak(msg);
-    //return the message
-    return msg;
+    return new Promise((resolve, reject) => {
+        try {
+            const voices = window.speechSynthesis.getVoices();
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.voice = voices[CONFIG.voiceToUse];
+            
+            msg.onend = () => resolve(msg);
+            msg.onerror = (error) => reject(error);
+            
+            window.speechSynthesis.speak(msg);
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 function openMenu() {
@@ -303,10 +330,10 @@ function openMenu() {
         voiceSelect.appendChild(option);
     });
     //set the select element to the voiceToUse
-    voiceSelect.value = voiceToUse;
+    voiceSelect.value = CONFIG.voiceToUse;
     //add an event listener to the select element
     voiceSelect.onchange = function() {
-        voiceToUse = voiceSelect.value;
+        CONFIG.voiceToUse = voiceSelect.value;
     };
     //append the select element to the menu
     menu.appendChild(voiceSelect);
@@ -364,3 +391,16 @@ document.addEventListener("touchmove", requestFullscreen);
 document.addEventListener("click", requestFullscreen);
 
 createContent();
+
+// Debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
